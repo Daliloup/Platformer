@@ -1,10 +1,16 @@
-import pygame as pg
+import pygame
+import sys
 
-pg.init()
-screen = pg.display.set_mode((400, 200))
+pygame.init()
+screen = pygame.display.set_mode((400, 200))
+
+print(pygame.event.get())
 
 while True:
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            pg.quit()
-    pg.display.update()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+    pygame.time.set_timer()
+    pygame.display.update()

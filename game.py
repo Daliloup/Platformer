@@ -1,16 +1,22 @@
 import pygame
-import sys
+from sys import exit
 
 pygame.init()
-screen = pygame.display.set_mode((400, 200))
+screen = pygame.display.set_mode((800, 400))
+pygame.display.set_caption('Game')
+pygame.display.set_icon(pygame.image.load('images/flag.png'))
+clock = pygame.time.Clock()
 
-print(pygame.event.get())
+surface = pygame.Surface((100, 100))
+surface.fill('blue')
 
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
-            sys.exit()
+            exit()
 
-    pygame.time.set_timer()
+    screen.blit(surface, (0, 0))
+
     pygame.display.update()
+    clock.tick(60)

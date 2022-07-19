@@ -1,31 +1,40 @@
 import pygame
 from sys import exit
 
-pygame.init()
 
-screen = pygame.display.set_mode((800, 400))
-pygame.display.set_caption('Game')
-pygame.display.set_icon(pygame.image.load('images/flag.png'))
+def main() -> None:
+    pygame.init()
 
-clock = pygame.time.Clock()
+    screen = pygame.display.set_mode((800, 400))
+    pygame.display.set_caption('Game')
+    pygame.display.set_icon(pygame.image.load('images/flag.png'))
 
-font = pygame.font.Font(None, 50)
+    clock = pygame.time.Clock()
 
-surface = pygame.Surface((100, 100))
-surface.fill('blue')
+    font = pygame.font.Font(None, 50)
 
-text_surface = font.render('GAME', False, 'white')
+    surface = pygame.Surface((100, 100))
+    surface.fill('blue')
 
-screen.blit(surface, (0, 0))
-screen.blit(text_surface, (400 - text_surface.get_width()//2, 50))
+    text_surface = font.render('GAME', False, 'white')
+
+    x = 0
+    y = 0
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+
+        screen.fill((0, 0, 0))
+        screen.blit(text_surface, (400 - text_surface.get_width()//2, 50))
+        screen.blit(surface, (x-50, y-50))
+        x, y = pygame.mouse.get_pos()
+
+        pygame.display.update()
+        clock.tick(60)
 
 
-while True:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            exit()
-
-    surface.scroll(10, 10)
-    pygame.display.update()
-    clock.tick(60)
+if __name__ == "__main__":
+    main()

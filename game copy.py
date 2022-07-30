@@ -1,7 +1,8 @@
 import pygame
 from sys import exit
+from math import ceil
 
-g = 60
+g = 200
 a = [True]
 
 
@@ -22,7 +23,7 @@ class Character:
 
         self.current_sprite = self.idle_sprite
 
-        self.can_jump = True
+        self.is_landed = True
 
     def update(self, screen, dt, tiles):
 
@@ -37,28 +38,29 @@ class Character:
             self.current_sprite = self.idle_sprite
 
         x_offset = self.vx * dt
-        if self.rect.move(x_offset, 0).collidelist(tiles) == -1:
+        collision_idx = self.rect.move(x_offset, 0).collidelist(tiles)
+        if collision_idx == -1:
             self.x += x_offset
             self.rect.x = self.x
 
         y_offset = self.vy * dt
-        collision_idx = self.rect.move(0, y_offset).collidelist(tiles)
+        collision_idx = self.rect.move(0, ceil(y_offset)).collidelist(tiles)
         if collision_idx == -1:
             self.y += y_offset
             self.rect.y = self.y
         else:
-            self.y = tiles[collision_idx].y - 50
+            self.vy = 0
             self.rect.y = self.y
-            self.can_jump = True
+            self.is_landed = True
 
         screen.blit(self.current_sprite, (self.x, self.y))
 
     def jump(self):
-        if not self.can_jump:
+        if not self.is_landed:
             return
-        
-        self.vy = -90
-        self.can_jump = False
+
+        self.vy = -150
+        self.is_landed = False
 
 
 def main() -> None:
@@ -82,9 +84,31 @@ def main() -> None:
     character_left = pygame.image.load(
         'graphics/sprites/character/left.png'
         ).convert()
+    
+    map = {
+        grass: (
+            (0, 300),
+            (0, 350),
+            (50, 350),
+            (100, 350),
+            (150, 350),
+            (200, 350),
+            (250, 350),
+            (300, 350),
+            (350, 350),
+            (400, 350),
+            (450, 350),
+            (600, 350),
+            (650, 350),
+            (700, 350),
+            (750, 350)
+            )
+        }
+    
+    spawnpoint = ((375, 200))
 
     player = Character(
-        (375, 200),
+        spawnpoint,
         idle=character_idle,
         runR=character_right,
         runL=character_left
@@ -94,15 +118,17 @@ def main() -> None:
 
     tiles = []
 
-    for i in range(16):
-        tiles.append(pygame.Rect(50*i, 350, 50, 50))
-        screen.blit(grass, (50*i, 350))
+    for tile, positions in map.items():
+        for coord in positions:
+            tiles.append(pygame.Rect(*coord, 50, 50))
+            screen.blit(tile, coord)
 
     while True:
         screen.blit(sky_bg, (0, 0))
 
-        for i in range(16):
-            screen.blit(grass, (50*i, 350))
+        for tile, positions in map.items():
+            for coord in positions:
+                screen.blit(tile, coord)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:

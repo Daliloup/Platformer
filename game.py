@@ -25,6 +25,8 @@ class Character(pygame.sprite.Sprite):
         self.ay = g
 
         # Status (landed or not)
+        self.HP = 3
+        self.iframes = 0
         self.landed = True
 
     def update(self, dt, input, group):
@@ -43,6 +45,9 @@ class Character(pygame.sprite.Sprite):
             self.vx = 0
             self.image = self.sprites['idle']
 
+        if self.iframes:
+            self.iframes -= 1
+
         # Velocity
         self.vx += self.ax * dt
         self.vy += self.ay * dt
@@ -60,6 +65,13 @@ class Character(pygame.sprite.Sprite):
             if (self.rect.bottom == sprite.rect.top and self.landed):
                 continue
 
+            if sprite.dmg and self.iframes == 0:
+                self.HP -= sprite.dmg
+                print(self.HP)
+                self.iframes = 60
+                if self.HP == 0:
+                    self.kill()
+
             self.vx = 0
             if (self.rect.right >= sprite.rect.left and
                     self.rect.left < sprite.rect.left):
@@ -74,6 +86,13 @@ class Character(pygame.sprite.Sprite):
         for sprite in collision_sprites:
             if abs(self.rect.x - sprite.rect.x) == 50:
                 continue
+
+            if sprite.dmg and self.iframes == 0:
+                self.HP -= sprite.dmg
+                print(self.HP)
+                self.iframes = 60
+                if self.HP == 0:
+                    self.kill()
 
             self.vy = 0
             if (self.rect.bottom >= sprite.rect.top and
@@ -91,12 +110,13 @@ class Character(pygame.sprite.Sprite):
 
 
 class Block(pygame.sprite.Sprite):
-    def __init__(self, image: pygame.Surface, coordinates):
+    def __init__(self, image, coordinates, dmg=0):
         super().__init__()
 
         self.image = image
 
         self.x, self.y = coordinates
+        self.dmg = dmg
 
         self.rect = self.image.get_rect()
         self.rect.topleft = coordinates
@@ -132,13 +152,16 @@ def main() -> None:
     pygame.display.set_icon(pygame.image.load('graphics/Icon/flag.png'))
 
     clock = pygame.time.Clock()
-    FPS = 60 
+    FPS = 60
     pressed_keys = set()
 
     # Sprites
     grass = pygame.image.load('graphics/sprites/platforms/grass.png').convert()
     dirt = pygame.image.load('graphics/sprites/platforms/dirt.png').convert()
+    spike = pygame.image.load('graphics/sprites/obstacles/spike.png').convert_alpha()
+
     sky_bg = pygame.image.load('graphics/sprites/background/sky.png').convert()
+
     character_idle = pygame.image.load(
         'graphics/sprites/character/idle.png'
         ).convert()
@@ -159,8 +182,8 @@ def main() -> None:
     map = {
         grass: (
             (0, 300),
-            (100, 250),
             (50, 350),
+            (100, 250),
             (100, 350),
             (150, 350),
             (200, 350),
@@ -177,8 +200,17 @@ def main() -> None:
             ),
         dirt: (
             (0, 350),
+        ),
+        spike: (
+            (750, 325),
         )
         }
+
+    block_dmg = {
+        spike: 1,
+        grass: 0,
+        dirt: 0
+    }
 
     spawnpoint = ((375, 200))
 
@@ -196,7 +228,7 @@ def main() -> None:
 
     for tile, positions in map.items():
         for coord in positions:
-            new_block = Block(tile, coord)
+            new_block = Block(tile, coord, block_dmg[tile])
             camera.add(new_block)
             static_objects.add(new_block)
 
@@ -211,11 +243,15 @@ def main() -> None:
                 pressed_keys.add(event.key)
             elif event.type == pygame.KEYUP:
                 pressed_keys.remove(event.key)
+        if player.HP == 0:
+            continue
 
         screen.blit(sky_bg, (0, 0))
 
         player.update(clock.tick(FPS)/1000, pressed_keys, static_objects)
+
         camera.update(player)
+
         player_group.draw(screen)
         static_objects.draw(screen)
 

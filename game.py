@@ -10,7 +10,7 @@ class Character(pygame.sprite.Sprite):
     def __init__(self, coordinates: tuple, **sprites):
         super().__init__()
         self.sprites = sprites
-        self.image = sprites['idle']
+        self.image = sprites['idle'] 
 
         # Rectangle (Hitbox)
         self.rect = self.image.get_rect()
@@ -55,6 +55,8 @@ class Character(pygame.sprite.Sprite):
         self.rect.x += x_offset
         collision_sprites = pygame.sprite.spritecollide(self, group, False)
         for sprite in collision_sprites:
+            if sprite == self:
+                continue
             if (self.rect.bottom == sprite.rect.top and self.landed):
                 continue
 
@@ -94,8 +96,31 @@ class Block(pygame.sprite.Sprite):
 
         self.image = image
 
+        self.x, self.y = coordinates
+
         self.rect = self.image.get_rect()
         self.rect.topleft = coordinates
+
+
+class Camera():
+    def __init__(self):
+        self.sprites = []
+        self.camera_borders = {
+            'left': 200,
+            'right': 600,
+            'top': 100,
+            'bottom': 300
+            }
+        self.camera_rect = pygame.Rect(200, 100, 400, 200)
+
+    def add(self, sprite):
+        self.sprites.append(sprite)
+
+    def update(self, target):
+        x_offset = 400 - target.rect.centerx
+
+        for sprite in self.sprites:
+            sprite.rect.x += x_offset
 
 
 def main() -> None:
@@ -107,7 +132,7 @@ def main() -> None:
     pygame.display.set_icon(pygame.image.load('graphics/Icon/flag.png'))
 
     clock = pygame.time.Clock()
-    FPS = 60
+    FPS = 60 
     pressed_keys = set()
 
     # Sprites
@@ -162,14 +187,18 @@ def main() -> None:
         **character_sprites
         )
 
-    player_group = pygame.sprite.GroupSingle()
-    player_group.add(player)
+    camera = Camera()
 
-    static_blocks = pygame.sprite.Group()
+    player_group = pygame.sprite.GroupSingle(player)
+    camera.add(player)
+
+    static_objects = pygame.sprite.Group()
 
     for tile, positions in map.items():
         for coord in positions:
-            static_blocks.add(Block(tile, coord))
+            new_block = Block(tile, coord)
+            camera.add(new_block)
+            static_objects.add(new_block)
 
     while True:
         # Event management
@@ -184,10 +213,11 @@ def main() -> None:
                 pressed_keys.remove(event.key)
 
         screen.blit(sky_bg, (0, 0))
-        static_blocks.draw(screen)
 
-        player.update(clock.tick(FPS)/1000, pressed_keys, static_blocks)
+        player.update(clock.tick(FPS)/1000, pressed_keys, static_objects)
+        camera.update(player)
         player_group.draw(screen)
+        static_objects.draw(screen)
 
         pygame.display.update()
 

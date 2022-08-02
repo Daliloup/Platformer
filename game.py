@@ -7,12 +7,14 @@ a = [True]
 
 
 class Character(pygame.sprite.Sprite):
-    def __init__(self, coordinates: tuple, **sprites):
+    def __init__(self, coordinates: tuple, sprites):
         super().__init__()
         self.sprites = sprites
-        self.image = sprites['idle'] 
+        self.image_idx = 2
+        self.image = sprites[self.image_idx]
 
         # Rectangle (Hitbox)
+        self.x, self.y = coordinates
         self.rect = self.image.get_rect()
         self.rect.topleft = coordinates
 
@@ -37,13 +39,20 @@ class Character(pygame.sprite.Sprite):
 
         if pygame.K_d in input:
             self.vx = 200
-            self.image = self.sprites['runR']
+            if self.image_idx != 4:
+                self.image_idx += 1
         elif pygame.K_q in input:
             self.vx = -200
-            self.image = self.sprites['runL']
+            if self.image_idx != 0:
+                self.image_idx -= 1
         else:
             self.vx = 0
-            self.image = self.sprites['idle']
+            if self.image_idx > 2:
+                self.image_idx -= 1
+            elif self.image_idx < 2:
+                self.image_idx += 1
+        
+        self.image = self.sprites[self.image_idx]
 
         if self.iframes:
             self.iframes -= 1
@@ -57,6 +66,7 @@ class Character(pygame.sprite.Sprite):
         y_offset = ceil(self.vy * dt)
 
         # X collision
+        self.x += x_offset
         self.rect.x += x_offset
         collision_sprites = pygame.sprite.spritecollide(self, group, False)
         for sprite in collision_sprites:
@@ -67,19 +77,19 @@ class Character(pygame.sprite.Sprite):
 
             if sprite.dmg and self.iframes == 0:
                 self.HP -= sprite.dmg
-                print(self.HP)
                 self.iframes = 60
-                if self.HP == 0:
-                    self.kill()
 
             self.vx = 0
             if (self.rect.right >= sprite.rect.left and
                     self.rect.left < sprite.rect.left):
                 self.rect.right = sprite.rect.left
+                self.x = sprite.x - 50
             else:
                 self.rect.left = sprite.rect.right
+                self.x = sprite.x + sprite.rect.width
 
         # Y Collision
+        self.y += y_offset
         self.rect.y += y_offset
         collision_sprites = pygame.sprite.spritecollide(self, group, False)
         self.landed = False
@@ -89,18 +99,17 @@ class Character(pygame.sprite.Sprite):
 
             if sprite.dmg and self.iframes == 0:
                 self.HP -= sprite.dmg
-                print(self.HP)
                 self.iframes = 60
-                if self.HP == 0:
-                    self.kill()
 
             self.vy = 0
             if (self.rect.bottom >= sprite.rect.top and
                     self.rect.top < sprite.rect.top):
                 self.rect.bottom = sprite.rect.top
+                self.y = sprite.y - sprite.rect.height
                 self.landed = True
             else:
                 self.rect.top = sprite.rect.bottom
+                self.y = sprite.y + sprite.rect.height
 
     def jump(self):
         if not self.landed:
@@ -125,22 +134,24 @@ class Block(pygame.sprite.Sprite):
 class Camera():
     def __init__(self):
         self.sprites = []
-        self.camera_borders = {
-            'left': 200,
-            'right': 600,
-            'top': 100,
-            'bottom': 300
-            }
-        self.camera_rect = pygame.Rect(200, 100, 400, 200)
+        self.x = 200
+        self.y = 100
+        self.rect = pygame.Rect(200, 100, 400, 200)
 
     def add(self, sprite):
         self.sprites.append(sprite)
 
     def update(self, target):
-        x_offset = 400 - target.rect.centerx
+        x_offset = target.rect.centerx - 400
+        y_offset = 0
+        if self.x <= 200 and x_offset < 0:
+            x_offset = 0
 
+        self.x += x_offset
+        self.y += y_offset
         for sprite in self.sprites:
-            sprite.rect.x += x_offset
+            sprite.rect.x -= x_offset
+            sprite.rect.y -= y_offset
 
 
 def main() -> None:
@@ -156,27 +167,34 @@ def main() -> None:
     pressed_keys = set()
 
     # Sprites
+    heart = pygame.image.load(
+        'graphics/sprites/icons/heart.png').convert_alpha()
     grass = pygame.image.load('graphics/sprites/platforms/grass.png').convert()
     dirt = pygame.image.load('graphics/sprites/platforms/dirt.png').convert()
-    spike = pygame.image.load('graphics/sprites/obstacles/spike.png').convert_alpha()
+    spike = pygame.image.load(
+        'graphics/sprites/obstacles/spike.png').convert_alpha()
 
     sky_bg = pygame.image.load('graphics/sprites/background/sky.png').convert()
 
     character_idle = pygame.image.load(
         'graphics/sprites/character/idle.png'
         ).convert()
-    character_runR = pygame.image.load(
-        'graphics/sprites/character/runR.png'
-        ).convert()
-    character_runL = pygame.image.load(
-        'graphics/sprites/character/runL.png'
-        ).convert()
+    character_runR = [
+        pygame.image.load('graphics/sprites/character/runR_1.png').convert(),
+        pygame.image.load('graphics/sprites/character/runR_2.png').convert()
+    ]
+    character_runL = [
+        pygame.image.load('graphics/sprites/character/runL_1.png').convert(),
+        pygame.image.load('graphics/sprites/character/runL_2.png').convert()
+    ]
 
-    character_sprites = dict(
-        idle=character_idle,
-        runR=character_runR,
-        runL=character_runL
-        )
+    character_sprites = [
+        *character_runL,
+        character_idle,
+        *character_runR
+    ]
+
+
 
     # Level
     map = {
@@ -188,8 +206,9 @@ def main() -> None:
             (150, 350),
             (200, 350),
             (250, 350),
-            (300, 350),
             (300, 200),
+            (300, 350),
+            (350, 150),
             (350, 350),
             (400, 350),
             (450, 350),
@@ -216,7 +235,7 @@ def main() -> None:
 
     player = Character(
         spawnpoint,
-        **character_sprites
+        character_sprites
         )
 
     camera = Camera()
@@ -249,11 +268,24 @@ def main() -> None:
         screen.blit(sky_bg, (0, 0))
 
         player.update(clock.tick(FPS)/1000, pressed_keys, static_objects)
+        if player.HP == 0:
+            player.x, player.y = spawnpoint
+            player.rect.topleft = spawnpoint
+            player.landed = False
+            camera.x = 200
+            player.HP = 3
+            for sprite in camera.sprites:
+                if sprite != player:
+                    sprite.rect.x, sprite.rect.y = sprite.x, sprite.y
 
         camera.update(player)
 
-        player_group.draw(screen)
+        if not player.iframes % 2:
+            player_group.draw(screen)
         static_objects.draw(screen)
+
+        for i in range(player.HP):
+            screen.blit(heart, (15+25*i, 15))
 
         pygame.display.update()
 

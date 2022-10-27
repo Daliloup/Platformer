@@ -1,2 +1,2 @@
 # Platformer
-Il y a rien à "read", dégage
+Il y a rien à lire

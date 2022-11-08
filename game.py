@@ -97,8 +97,11 @@ class Tileset:
             tileset.image.source
         ).convert_alpha()
         self.tiles = {}
-        for i in range(tileset.tilecount):
-            self.tiles[i] = self.tileset_img.subsurface(64*i, 0, 64, 64)
+        w = tileset.tilewidth
+        h = tileset.tileheight
+        for i in range(tileset.tilecount - tileset.columns + 1):
+            for j in range(tileset.columns):
+                self.tiles[i] = self.tileset_img.subsurface(w*j, h*i, w, h)
 
     def __getitem__(self, id):
         try:

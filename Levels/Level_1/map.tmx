@@ -5,8 +5,7 @@
   <property name="flag_y" type="int" value="448"/>
  </properties>
  <tileset firstgid="1" source="Grass_Tileset.tsx"/>
- <tileset firstgid="9" source="Flag.tsx"/>
- <tileset firstgid="10" source="Spikes.tsx"/>
+ <tileset firstgid="9" source="Spikes.tsx"/>
  <imagelayer id="2" name="Background" parallaxx="0" parallaxy="0">
   <image source="../../graphics/sprites/background/sky.png" width="1024" height="512"/>
  </imagelayer>
@@ -31,9 +30,6 @@
 </data>
  </layer>
  <objectgroup id="4" name="Spikes">
-  <object id="12" gid="14" x="1472" y="448" width="64" height="64"/>
- </objectgroup>
- <objectgroup id="3" name="Flag">
-  <object id="5" name="Flag" gid="9" x="1920" y="448" width="32" height="32"/>
+  <object id="12" gid="13" x="1472" y="448" width="64" height="64"/>
  </objectgroup>
 </map>

@@ -9,7 +9,11 @@ g = 270
 
 
 class Level:
-    def __init__(self, screen: pygame.Surface, map, spawnpoint):
+    def __init__(self,
+                 screen: pygame.Surface,
+                 map: pytmx.TiledMap,
+                 spawnpoint: tuple[int]) -> None:
+
         self.screen = screen
         self.spawnpoint = spawnpoint
         self.bottom = 512
@@ -23,8 +27,13 @@ class Level:
             'graphics/icons/heart.png'
         ).convert_alpha()
 
+        # A list of all the tilesets used
         self.tilesets = [Tileset(i) for i in map.tilesets]
+
+        # A list of layers to be drawn on the screen
         self.layers = []
+
+        # Camera keeps the elements in field of view
         self.camera = Camera(
             0,
             0,
@@ -32,26 +41,30 @@ class Level:
             map.height*map.tileheight
         )
 
+        # Creates the pygame layers
         for layer in map.layers:
             if not isinstance(layer, pytmx.pytmx.TiledTileLayer):
                 continue
 
             new_layer = pygame.sprite.Group()
-            for t in layer.tiles():
-                pos = t[2][1][0]//64
-                coord = (t[0]*32, t[1]*32)
-                new_layer.add(Tile(self.tilesets[0][pos], coord))
+            for tile in layer.tiles():
+                tileset_pos = tile[2][1][0]//64
+                coord = (tile[0]*32, tile[1]*32)
+                new_layer.add(Tile(self.tilesets[0][tileset_pos], coord))
 
             self.layers.append(new_layer)
 
+        # Initiates the player
         self.player = Character(
             self.spawnpoint,
             self.get_character_spritesheets()
         )
+
+        # Creates a layer for the player
         self.player_layer = pygame.sprite.GroupSingle(self.player)
         self.layers.append(self.player_layer)
 
-    def get_character_spritesheets(self):
+    def get_character_spritesheets(self) -> dict[str: 'Spritesheet']:
         character_spritesheets = {}
         character_spritesheets['running'] = Spritesheet(
             "graphics/sprites/character/running.png",
@@ -96,7 +109,7 @@ class Level:
 
 
 class Tileset:
-    def __init__(self, tileset) -> None:
+    def __init__(self, tileset: pytmx.TiledTileset) -> None:
         tileset_img = pygame.image.load(
             'Levels/Level_1/' + tileset.source
         ).convert_alpha()
@@ -110,7 +123,7 @@ class Tileset:
             for j in range(tileset.columns):
                 self.images.append(tileset_img.subsurface(w*j, h*i, w, h))
 
-    def __getitem__(self, id):
+    def __getitem__(self, id: int) -> 'Tile':
         try:
             return self.images[id]
         except IndexError:
@@ -118,31 +131,35 @@ class Tileset:
 
 
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, image, coordinates, dmg=0):
+    def __init__(self, image: pygame.Surface, coordinates: tuple[int], dmg=0):
         super().__init__()
 
         self.image = image
 
+        # Absolute coordinates (in map)
         self.x, self.y = coordinates
         self.dmg = dmg
 
+        # Relative coordinates (on screen)
         self.rect = self.image.get_rect()
         self.rect.topleft = coordinates
 
 
 class Spritesheet():
-    def __init__(self, source, keyframe) -> None:
+    def __init__(self, source: str, keyframe: int) -> None:
         image = pygame.image.load(source)
         self.sprites = []
+
         for i in range(4):
             self.sprites.append(image.subsurface(32*i, 0, 32, 32))
+
         self.current = 0
         self.keyframe = keyframe
 
-    def get_curr_sprite(self):
+    def get_curr_sprite(self) -> pygame.Surface:
         return self.sprites[self.current]
 
-    def next(self):
+    def next(self) -> None:
         if self.current < len(self.sprites) - 1:
             self.current += 1
         else:
@@ -150,8 +167,14 @@ class Spritesheet():
 
 
 class Character(pygame.sprite.Sprite):
-    def __init__(self, spawnpoint: tuple, spritesheets: dict[Spritesheet]):
+    def __init__(self,
+                 spawnpoint: tuple,
+                 spritesheets: dict[str, Spritesheet]) -> None:
+
+        # Initializes the sprite class
         super().__init__()
+
+        # Animation Part
         self.state = 'idle'
         self.spritesheets = spritesheets
         self.spritesheet = spritesheets[self.state]
@@ -176,7 +199,11 @@ class Character(pygame.sprite.Sprite):
         self.iframes = 0  # Invincibility frames
         self.landed = True
 
-    def update(self, dt, input, group):
+    def update(self,
+               dt: float,
+               input: list,
+               group: pygame.sprite.Group) -> None:
+
         self.keyframe += 1
         if self.keyframe == self.spritesheet.keyframe:
             self.spritesheet.next()
@@ -196,6 +223,7 @@ class Character(pygame.sprite.Sprite):
         else:
             self.vx = 0
 
+        # State handler
         if self.landed and self.vx != 0:
             new_state = 'running'
         else:
@@ -264,7 +292,7 @@ class Character(pygame.sprite.Sprite):
                 self.rect.top = sprite.rect.bottom
                 self.y = sprite.y + sprite.rect.height
 
-    def jump(self):
+    def jump(self) -> None:
         if not self.landed:
             return
 
@@ -272,7 +300,7 @@ class Character(pygame.sprite.Sprite):
 
 
 class Camera():
-    def __init__(self, xmin, ymin, xmax, ymax, x=0, y=0):
+    def __init__(self, xmin: int, ymin: int, xmax: int, ymax: int, x=0, y=0):
         self.xmin = xmin
         self.xmax = xmax
 
@@ -284,10 +312,10 @@ class Camera():
 
         self.rect = pygame.Rect(200, 100, 400, 200)
 
-    def add(self, sprite):
-        self.sprites.append(sprite)
+    def update(self,
+               target: pygame.sprite.Sprite,
+               layers: list[pytmx.TiledTileLayer]) -> None:
 
-    def update(self, target, layers):
         dx = target.rect.centerx - 512
         dy = 0
         if (self.x <= self.xmin and dx < 0) or \
@@ -312,6 +340,7 @@ def main() -> None:
     screen = pygame.display.set_mode((1024, 512))
     pygame.display.set_caption('Game')
 
+    # Loads level
     level = Level(
         screen,
         pytmx.TiledMap('Levels/Level_1/map.tmx'),
@@ -326,8 +355,7 @@ def main() -> None:
         # Event management
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                exit()
+                return
 
             if event.type == pygame.KEYDOWN:
                 pressed_keys.add(event.key)
@@ -340,3 +368,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+    pygame.quit()
+    exit(0)

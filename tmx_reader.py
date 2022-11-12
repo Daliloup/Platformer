@@ -1,5 +1,5 @@
-import pytmx
 import pygame
+import pytmx
 
 map = pytmx.TiledMap('Levels/Level_1/map.tmx')
 
@@ -34,7 +34,7 @@ class Tileset:
     def __getitem__(self, id):
         try:
             return self.images[id]
-        except KeyError:
+        except IndexError:
             return
 
 
@@ -68,13 +68,14 @@ def main() -> None:
 
         screen.fill((255, 255, 255))
 
-        # for i in range(len(map.tilesets)):
-        #     display_tileset(screen, Tileset(map.tilesets[i]), i*64)
+        for i in range(len(map.tilesets)):
+            display_tileset(screen, Tileset(map.tilesets[i]), i*64)
 
         clock.tick(FPS)
         pygame.display.update()
 
 
 if __name__ == "__main__":
-    print(map.layers)
-    print('\n', map.layers, sep='')
+    # for i in map.layers[0].tiles:
+    #     print(i)
+    print(type(map.layers[0]))

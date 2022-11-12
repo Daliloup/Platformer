@@ -1,5 +1,5 @@
 import pygame
-import tmx
+import pytmx
 from sys import exit
 from math import ceil
 
@@ -16,15 +16,15 @@ class Level:
 
         # Loads the images
         self.background_img = pygame.image.load(
-            map.layers[0].image.source
+            map.properties['Background']
         ).convert()
 
         self.heart = pygame.image.load(
-            'graphics/sprites/icons/heart.png'
+            'graphics/icons/heart.png'
         ).convert_alpha()
 
-        self.tileset = Tileset(map.tilesets[0])
-        self.tiles = pygame.sprite.Group()
+        self.tilesets = [Tileset(i) for i in map.tilesets]
+        self.layers = []
         self.camera = Camera(
             0,
             0,
@@ -32,27 +32,30 @@ class Level:
             map.height*map.tileheight
         )
 
-        for i, tile in enumerate(map.layers[1].tiles):
-            if tile.gid <= 0 or tile.gid > 8:
+        for layer in map.layers:
+            if not isinstance(layer, pytmx.pytmx.TiledTileLayer):
                 continue
-            x = i % 64 * 32
-            y = (i // 64 - 1) * 32
-            new_tile = Tile(self.tileset[tile.gid-1], (x, y))
-            self.tiles.add(new_tile)
-            self.camera.add(new_tile)
+
+            new_layer = pygame.sprite.Group()
+            for t in layer.tiles():
+                pos = t[2][1][0]//64
+                coord = (t[0]*32, t[1]*32)
+                new_layer.add(Tile(self.tilesets[0][pos], coord))
+
+            self.layers.append(new_layer)
 
         self.player = Character(
             self.spawnpoint,
             self.get_character_spritesheets()
         )
-        self.player_group = pygame.sprite.GroupSingle(self.player)
-        self.camera.add(self.player)
+        self.player_layer = pygame.sprite.GroupSingle(self.player)
+        self.layers.append(self.player_layer)
 
     def get_character_spritesheets(self):
         character_spritesheets = {}
         character_spritesheets['running'] = Spritesheet(
             "graphics/sprites/character/running.png",
-            4
+            2
         )
         character_spritesheets['idle'] = Spritesheet(
             "graphics/sprites/character/running.png",
@@ -61,7 +64,7 @@ class Level:
         return character_spritesheets
 
     def update(self, dt: int, input: tuple):
-        self.player.update(dt, input, self.tiles)
+        self.player.update(dt, input, self.layers[0])
 
         if self.player.rect.top > self.bottom:
             self.player.hp -= 1
@@ -70,10 +73,10 @@ class Level:
         if self.player.hp == 0:
             self.reinitialize()
 
-        self.camera.update(self.player)
+        self.camera.update(self.player, self.layers)
         self.screen.blit(self.background_img, (0, 0))
-        self.tiles.draw(self.screen)
-        self.player_group.draw(self.screen)
+        for layer in self.layers:
+            layer.draw(self.screen)
 
         for i in range(self.player.hp):
             self.screen.blit(self.heart, (15+25*i, 15))
@@ -86,27 +89,31 @@ class Level:
         self.camera.x = 0
         if heal:
             self.player.hp = 3
-        for sprite in self.camera.sprites:
-            if sprite != self.player:
-                sprite.rect.x, sprite.rect.y = sprite.x, sprite.y
+        for layer in self.layers:
+            for sprite in layer:
+                if sprite != self.player:
+                    sprite.rect.x, sprite.rect.y = sprite.x, sprite.y
 
 
 class Tileset:
-    def __init__(self, tileset: tmx.Tileset):
-        self.tileset_img = pygame.image.load(
-            tileset.image.source
+    def __init__(self, tileset) -> None:
+        tileset_img = pygame.image.load(
+            'Levels/Level_1/' + tileset.source
         ).convert_alpha()
-        self.tiles = {}
+        self.images = []
+        self.tilecount = tileset.tilecount
+        self.firstgid = tileset.firstgid
+
         w = tileset.tilewidth
         h = tileset.tileheight
         for i in range(tileset.tilecount - tileset.columns + 1):
             for j in range(tileset.columns):
-                self.tiles[i] = self.tileset_img.subsurface(w*j, h*i, w, h)
+                self.images.append(tileset_img.subsurface(w*j, h*i, w, h))
 
     def __getitem__(self, id):
         try:
-            return self.tiles[id]
-        except KeyError:
+            return self.images[id]
+        except IndexError:
             return
 
 
@@ -266,8 +273,6 @@ class Character(pygame.sprite.Sprite):
 
 class Camera():
     def __init__(self, xmin, ymin, xmax, ymax, x=0, y=0):
-        self.sprites = []
-
         self.xmin = xmin
         self.xmax = xmax
 
@@ -282,7 +287,7 @@ class Camera():
     def add(self, sprite):
         self.sprites.append(sprite)
 
-    def update(self, target):
+    def update(self, target, layers):
         dx = target.rect.centerx - 512
         dy = 0
         if (self.x <= self.xmin and dx < 0) or \
@@ -294,9 +299,10 @@ class Camera():
 
         self.x += dx
         self.y += dy
-        for sprite in self.sprites:
-            sprite.rect.x -= dx
-            sprite.rect.y -= dy
+        for layer in layers:
+            for tile in layer:
+                tile.rect.x -= dx
+                tile.rect.y -= dy
 
 
 def main() -> None:
@@ -308,7 +314,7 @@ def main() -> None:
 
     level = Level(
         screen,
-        tmx.TileMap.load('Levels/Level_1/map.tmx'),
+        pytmx.TiledMap('Levels/Level_1/map.tmx'),
         (512, 256)
     )
 

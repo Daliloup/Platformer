@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.9" tiledversion="1.9.0" orientation="orthogonal" renderorder="right-down" width="64" height="16" tilewidth="32" tileheight="32" infinite="0" nextlayerid="5" nextobjectid="13">
+<map version="1.9" tiledversion="1.9.2" orientation="orthogonal" renderorder="right-down" width="64" height="16" tilewidth="32" tileheight="32" infinite="0" nextlayerid="6" nextobjectid="13">
  <properties>
+  <property name="Background" type="file" value="graphics/sprites/background/sky.png"/>
   <property name="flag_x" type="int" value="1920"/>
   <property name="flag_y" type="int" value="448"/>
  </properties>
  <tileset firstgid="1" source="Grass_Tileset.tsx"/>
  <tileset firstgid="9" source="Spikes.tsx"/>
- <imagelayer id="2" name="Background" parallaxx="0" parallaxy="0">
-  <image source="../../graphics/sprites/background/sky.png" width="1024" height="512"/>
- </imagelayer>
  <layer id="1" name="Basic tiles" width="64" height="16">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
